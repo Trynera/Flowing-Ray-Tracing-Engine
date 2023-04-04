@@ -63,30 +63,39 @@ First in the root of the repo, create a folder named Build.
 
 Then Open CMake GUI.
 In CMake GUI Select "Browse Source...":
-![Screenshot 2023-04-04 112318](https://user-images.githubusercontent.com/96610933/229748141-f254a008-f692-4cca-a5a0-a65e37edfc16.png)
+
+![image](https://user-images.githubusercontent.com/96610933/229748141-f254a008-f692-4cca-a5a0-a65e37edfc16.png)
+
 Select the root of the repo (whereever you placed that thing).
 
 Next in CMake GUI, select Browse Build:
+
 ![image](https://user-images.githubusercontent.com/96610933/229749035-a125a6c5-601c-4a46-b2b7-d4d6f28aa544.png)
 
 This time you select the newly created Build folder:
+
 ![image](https://user-images.githubusercontent.com/96610933/229749336-9151f681-ca1a-4c88-b1c0-3b510cdffa88.png)
 
 Once you've done that, press Configure on the bottom left of the window:
+
 ![image](https://user-images.githubusercontent.com/96610933/229749497-6b75ccf6-737f-4d49-9b53-42db57014791.png)
 
 This winodw should pop up:
+
 ![image](https://user-images.githubusercontent.com/96610933/229749802-e2801685-1c50-41c1-aabc-a6e72acfc9fa.png)
+
 Here you can select the compiler you want to use. Once you've chosen that you can just press on finish.
 It should start configuring everything now.
 
 Once it finished configuring, go ahead and press generate:
+
 ![image](https://user-images.githubusercontent.com/96610933/229750812-0efdf4ab-492a-46cb-a343-68b2bb45faf0.png)
 
 Once you've done that, you can open the solution file in the Build folder (if you chose Visual Studio idk about other IDEs).
 
 In Visual Studio you need to do 1 more thing before you run the project!
 In the Project Folder Explorer, right click "flowing-rendering-engine" and press Set as default
-![Screenshot 2023-04-04 113608](https://user-images.githubusercontent.com/96610933/229752047-60f85e50-f3b6-4123-90d8-6a4f8b17417f.png)
+
+![image](https://user-images.githubusercontent.com/96610933/229752047-60f85e50-f3b6-4123-90d8-6a4f8b17417f.png)
 
 Now you can go to the main.cpp file and compile using F5
