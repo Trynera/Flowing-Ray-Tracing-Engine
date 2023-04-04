@@ -80,7 +80,7 @@ Once you've done that, press Configure on the bottom left of the window:
 
 ![image](https://user-images.githubusercontent.com/96610933/229749497-6b75ccf6-737f-4d49-9b53-42db57014791.png)
 
-This winodw should pop up:
+This window should pop up:
 
 ![image](https://user-images.githubusercontent.com/96610933/229749802-e2801685-1c50-41c1-aabc-a6e72acfc9fa.png)
 
