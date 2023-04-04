@@ -83,4 +83,10 @@ It should start configuring everything now.
 Once it finished configuring, go ahead and press generate:
 ![image](https://user-images.githubusercontent.com/96610933/229750812-0efdf4ab-492a-46cb-a343-68b2bb45faf0.png)
 
-Once you've done that, you can open the solution file in the Build folder (if you chose Visual Studio idk about other IDEs)
+Once you've done that, you can open the solution file in the Build folder (if you chose Visual Studio idk about other IDEs).
+
+In Visual Studio you need to do 1 more thing before you run the project!
+In the Project Folder Explorer, right click "flowing-rendering-engine" and press Set as default
+![Screenshot 2023-04-04 113608](https://user-images.githubusercontent.com/96610933/229752047-60f85e50-f3b6-4123-90d8-6a4f8b17417f.png)
+
+Now you can go to the main.cpp file and compile using F5
