@@ -4,13 +4,13 @@ A Ray Tracing Engine, written in Vulkan.
 This is just a Path Tracer I have created for fun. I also want to look into ease of use, when using this once I'm finished
 and am also looking into implementing stuff like:
 
-[ ] ReSTIR
-[ ] HDR Support
-[ ] BVH
-[ ] Direct Illumination
-[ ] Indirect Illumination
-[ ] BRDF
-[ ] Texture support
+- [ ] ReSTIR
+- [ ] HDR Support
+- [ ] BVH
+- [ ] Direct Illumination
+- [ ] Indirect Illumination
+- [ ] BRDF
+- [ ] Texture support
 
 and more!
 
