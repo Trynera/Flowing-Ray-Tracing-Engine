@@ -14,11 +14,11 @@ and am also looking into implementing stuff like:
 
 and more!
 
-If you want to compile it for yourself, do as follows:
+If you want to compile it for yourself, make sure the VulkanSDK from LunarG is installed and do as follows:
 
 ### Linux
 
-First make sure that you have all the gitsubmodules installed by doing:
+First make sure that you have all the git submodules installed by doing:
 ```
 git submodule init
 git submodule update
