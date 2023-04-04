@@ -30,6 +30,11 @@ mkdir build
 cd ./build
 ```
 
+Make sure shaders are compiled (even though CMake should handle that for you) by doing:
+```
+sh ../shaders/compile.sh
+```
+
 After that you should Build it using CMake,
 You can do that by first doing this in the build folder:
 ```
@@ -44,12 +49,6 @@ make
 I have 12 Threads on my Processor, so I will use -j12 to speed it up:
 ```
 make -j12
-```
-
-Make sure shaders are compiled (even though CMake should handle that for you) by doing:
-```
-cd ../shaders/
-./compile.sh
 ```
 
 The actual application should be in the bin folder!
