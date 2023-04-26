@@ -6,10 +6,10 @@ and am also looking into implementing stuff like:
 
 - [ ] ReSTIR
 - [ ] HDR Support
-- [ ] BVH
-- [ ] Direct Illumination
-- [ ] Indirect Illumination
-- [ ] BRDF
+- [x] BVH
+- [x] Direct Illumination
+- [x] Indirect Illumination
+- [ ] Better BRDF
 - [ ] Texture support
 
 and more!
