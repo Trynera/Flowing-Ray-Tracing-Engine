@@ -9,7 +9,6 @@ and am also looking into implementing stuff like:
 - [x] BVH
 - [x] Direct Illumination
 - [x] Indirect Illumination
-- [ ] Better BRDF
 - [ ] Texture support
 
 and more!
