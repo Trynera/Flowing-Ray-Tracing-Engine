@@ -3,6 +3,7 @@
 #include <SDL_vulkan.h>
 
 #include "utils/Camera.h"
+#include "utils/GpuModel.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -11,6 +12,8 @@
 
 #include "logger.h"
 #include "vkbase/vulkan_base.h"
+#include "utils/RtScene.h"
+#include <algorithm>
 
 #define FRAMES_IN_FLIGHT 2
 
@@ -25,14 +28,43 @@ VkCommandBuffer commandBuffers[FRAMES_IN_FLIGHT];
 VkFence fences[FRAMES_IN_FLIGHT];
 VkSemaphore acquireSemaphores[FRAMES_IN_FLIGHT];
 VkSemaphore releaseSemaphores[FRAMES_IN_FLIGHT];
+
 VulkanBuffer vertexBuffer;
-VulkanBuffer uniformBuffer;
+
+VkDescriptorSetLayout descriptorSetLayout;
+VkDescriptorPool uniformDescriptorPool;
+VkDescriptorSet uniformDescriptorSets[FRAMES_IN_FLIGHT];
+VulkanBuffer uniformBuffers[FRAMES_IN_FLIGHT];
+
+VkDescriptorPool listDescriptorPool;
+VulkanBuffer listBuffers[FRAMES_IN_FLIGHT];
+
+std::vector<Triangle> triangles;
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+float currentFrame = (float)(SDL_GetTicks()) / 1000.0f;
+float firstFrame = currentFrame;
 
 Camera camera;
 
 bool mouseAbsorbed = false;
 
 glm::mat4 rotationMatrix(1);
+
+bool fullscreen;
+int window_width = 1280;
+int window_height = 720;
+
+struct UniformBufferObject {
+	alignas(16) glm::vec3 camPos;
+	alignas(16) glm::mat4 rotationMatrix;
+	alignas(16) glm::ivec2 screenRes;
+	alignas(4) float time;
+};
+
+HitList world;
 
 void handleInput(
 	SDL_Window* window,
@@ -48,8 +80,8 @@ void handleInput(
 	int mouseX = { event->motion.x };
 	int mouseY = { event->motion.y };
 
-	float xOffset = (float)(mouseX - 1280.0f / 2.0f);
-	float yOffset = (float)(mouseY - 720.0f / 2.0f);
+	float xOffset = (float)(mouseX - (float)window_width / 2.0f);
+	float yOffset = (float)(mouseY - (float)window_height / 2.0f);
 
 	if (xOffset != 0.0f || yOffset != 0.0f) moved = true;
 
@@ -64,26 +96,39 @@ void handleInput(
 	*rotationMatrix = glm::rotate(glm::rotate(glm::mat4(1), cameraPitch, glm::vec3(1.0f, 0.0f, 0.0f)), cameraYaw, glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
+void recreateRenderPass();
+void recreateSwapchain();
+
 bool handleMessage(SDL_Window* window, int width, int height) {
 	SDL_Event event;
 
+	glm::vec3 forward = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f));
+
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+	glm::vec3 right = glm::cross(forward, up);
+
+	glm::vec3 movementDirection(0);
+	float multiplier = 1;
+
+	const uint8_t* state = SDL_GetKeyboardState(nullptr);
+
+	movementDirection = glm::vec3(0);
+	if (state[SDL_SCANCODE_W])
+		camera.pos += glm::normalize(forward) * deltaTime * multiplier;
+	else if (state[SDL_SCANCODE_S])
+		camera.pos -= glm::normalize(forward) * deltaTime * multiplier;
+	if (state[SDL_SCANCODE_A])
+		camera.pos += right * deltaTime * multiplier;
+	else if (state[SDL_SCANCODE_D])
+		camera.pos -= right * deltaTime * multiplier;
+	if (state[SDL_SCANCODE_SPACE])
+		camera.pos += up * deltaTime * multiplier;
+	else if (state[SDL_SCANCODE_LSHIFT])
+		camera.pos -= up * deltaTime * multiplier;
+	if (state[SDL_SCANCODE_R])
+		multiplier += 10;
+
 	while (SDL_PollEvent(&event)) {
-		float deltaTime = 0.0f;
-		float lastFrame = 0.0f;
-
-		float currentFrame = (float)(SDL_GetTicks()) / 1000.0f;
-
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
-
-		glm::vec3 forward = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f) );
-
-		glm::vec3 up(0.0f, 1.0f, 0.0f);
-		glm::vec3 right = glm::cross(forward, up);
-
-		glm::vec3 movementDirection(0);
-		float multiplier = 1;
-
 		switch (event.type) {
 		case SDL_QUIT: return false;
 		}
@@ -101,25 +146,26 @@ bool handleMessage(SDL_Window* window, int width, int height) {
 			rotationMatrix = glm::rotate(glm::rotate(glm::mat4(1), camera.cameraPitch, glm::vec3(1.0f, 0.0f, 0.0f)), camera.cameraYaw, glm::vec3(0.0f, 1.0f, 0.0f));
 		}
 		else if (event.type == SDL_KEYDOWN) {
-			if (event.key.keysym.sym == SDLK_w)
-				camera.pos.y = 0.0f;
-			else if (SDLK_s)
-				movementDirection -= forward;
-			if (SDLK_a)
-				movementDirection -= right;
-			else if (SDLK_d)
-				movementDirection += right;
-			if (SDLK_SPACE)
-				movementDirection += up;
-			else if (SDLK_LSHIFT)
-				movementDirection -= up;
-			if (SDLK_LCTRL)
-				multiplier = 10;
-			else
-				multiplier = 1;
-
-			if (glm::length(movementDirection) > 0.0f)
-				camera.pos += glm::normalize(movementDirection) * (float)deltaTime * (float)multiplier;
+			if (event.key.keysym.sym == SDLK_F11) {
+				if (fullscreen != true) {
+					fullscreen = true;
+					window_width = 1920;
+					window_height = 1080;
+					SDL_SetWindowSize(window, window_width, window_height);
+					SDL_SetWindowFullscreen(window, SDL_TRUE);
+					recreateSwapchain();
+					recreateRenderPass();
+				}
+				else {
+					fullscreen = false;
+					window_width = 1280;
+					window_height = 720;
+					SDL_SetWindowSize(window, window_width, window_height);
+					SDL_SetWindowFullscreen(window, SDL_FALSE);
+					recreateSwapchain();
+					recreateRenderPass();
+				}
+			}
 		}
 	}
 	return true;
@@ -147,7 +193,6 @@ void recreateRenderPass() {
 		VKA(vkCreateFramebuffer(context->device, &createInfo, 0, &framebuffers[i]));
 	}
 }
-
 // Ignore this, it's not important
 float vertexData[] = {
 	1.0f, -1.0f,
@@ -187,10 +232,75 @@ void initApp(SDL_Window* window) {
 
 	recreateRenderPass();
 
+	{
+		VkDescriptorPoolSize poolSizes[] = {
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, FRAMES_IN_FLIGHT },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, FRAMES_IN_FLIGHT },
+		};
+		VkDescriptorPoolCreateInfo createInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+		createInfo.maxSets = FRAMES_IN_FLIGHT;
+		createInfo.poolSizeCount = ARRAY_COUNT(poolSizes);
+		createInfo.pPoolSizes = poolSizes;
+		VKA(vkCreateDescriptorPool(context->device, &createInfo, 0, &uniformDescriptorPool));
+	}
+
+	createTriangles(&triangles, "..\\resources\\monke.obj");
+
+	for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		// Very long ;)
+		createBuffer(context, &uniformBuffers[i], sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		createBuffer(context, &listBuffers[i], sizeof(Triangle) * triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	}
+
+	{
+		VkDescriptorSetLayoutBinding bindings[] = {
+			{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, 0 },
+			{ 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, 0 },
+		};
+		VkDescriptorSetLayoutCreateInfo createInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		createInfo.bindingCount = ARRAY_COUNT(bindings);
+		createInfo.pBindings = bindings;
+		VKA(vkCreateDescriptorSetLayout(context->device, &createInfo, 0, &descriptorSetLayout));
+
+		UniformBufferObject ubo = { camera.pos, rotationMatrix, glm::ivec2(window_width, window_height), firstFrame };
+
+		for (uint32_t i = 0; i < triangles.size(); i++) {
+			printf("V0: %.2f, %.2f, %.2f\n", triangles[i].v0.x, triangles[i].v0.y, triangles[i].v0.z);
+			printf("V1: %.2f, %.2f, %.2f\n", triangles[i].v1.x, triangles[i].v1.y, triangles[i].v1.z);
+			printf("V2: %.2f, %.2f, %.2f\n", triangles[i].v2.x, triangles[i].v2.y, triangles[i].v2.z);
+		}
+
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			VkDescriptorSetAllocateInfo allocateInfo = {};
+			allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			allocateInfo.descriptorPool = uniformDescriptorPool;
+			allocateInfo.descriptorSetCount = 1;
+			allocateInfo.pSetLayouts = &descriptorSetLayout;
+			VKA(vkAllocateDescriptorSets(context->device, &allocateInfo, &uniformDescriptorSets[i]));
+
+			VkDescriptorBufferInfo bufferInfo = { uniformBuffers[i].buffer, 0, sizeof(UniformBufferObject) };
+			VkWriteDescriptorSet descriptorWrites[2];
+			descriptorWrites[0] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			descriptorWrites[0].dstSet = uniformDescriptorSets[i];
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+			VkDescriptorBufferInfo listBufferInfo = { listBuffers[i].buffer, 0, sizeof(Triangle) * triangles.size() };
+			descriptorWrites[1] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			descriptorWrites[1].dstSet = uniformDescriptorSets[i];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			descriptorWrites[1].pBufferInfo = &listBufferInfo;
+			VK(vkUpdateDescriptorSets(context->device, ARRAY_COUNT(descriptorWrites), descriptorWrites, 0, 0));
+		}
+	}
+
 	VkVertexInputAttributeDescription vertexAttributeDescriptions[2] = {};
 	vertexAttributeDescriptions[0].binding = 0;
 	vertexAttributeDescriptions[0].location = 0;
-	vertexAttributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	vertexAttributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
 	vertexAttributeDescriptions[0].offset = 0;
 	vertexAttributeDescriptions[1].binding = 0;
 	vertexAttributeDescriptions[1].location = 1;
@@ -200,10 +310,7 @@ void initApp(SDL_Window* window) {
 	vertexInputBinding.binding = 0;
 	vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	vertexInputBinding.stride = sizeof(float) * 5;
-
-	{ // Creates the Render Pipeline
-		pipeline = createPipeline(context, "../shaders/vert.spv", "../shaders/frag.spv", renderPass, swapchain.width, swapchain.height, vertexAttributeDescriptions, ARRAY_COUNT(vertexAttributeDescriptions), &vertexInputBinding);
-	}
+	pipeline = createPipeline(context, "../shaders/vert.spv", "../shaders/frag.spv", renderPass, swapchain.width, swapchain.height, vertexAttributeDescriptions, ARRAY_COUNT(vertexAttributeDescriptions), &vertexInputBinding, 1, &descriptorSetLayout, 0);
 
 	for (uint32_t i = 0; i < ARRAY_COUNT(fences); i++) { // Sets Create Info for Fence
 		VkFenceCreateInfo createInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
@@ -218,13 +325,16 @@ void initApp(SDL_Window* window) {
 		VKA(vkCreateSemaphore(context->device, &createInfo, 0, &releaseSemaphores[i]));
 	}
 
-	for (uint32_t i = 0; i < ARRAY_COUNT(commandPools); i++) { // Sets Command Pool
+	for (uint32_t i = 0; i < ARRAY_COUNT(commandPools); i++) {
+		// Sets the Command Pool
 		VkCommandPoolCreateInfo createInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 		createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 		createInfo.queueFamilyIndex = context->graphicsQueue.familyIndex;
 		VKA(vkCreateCommandPool(context->device, &createInfo, 0, &commandPools[i]));
 	}
-	for (uint32_t i = 0; i < ARRAY_COUNT(commandPools); i++) { // Sets Command Buffer
+
+	for (uint32_t i = 0; i < ARRAY_COUNT(commandPools); i++) {
+		// Sets the Command Buffer
 		VkCommandBufferAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 		allocateInfo.commandPool = commandPools[i];
 		allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -285,7 +395,7 @@ void renderApp() {
 	VKA(vkMapMemory(context->device, vertexBuffer.memory, 0, sizeof(vertexData), 0, &data));
 	memcpy(data, vertexData, sizeof(vertexData));
 	VK(vkUnmapMemory(context->device, vertexBuffer.memory));
-
+	
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	{
@@ -293,7 +403,7 @@ void renderApp() {
 		VKA(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)swapchain.width, (float)swapchain.height };
-		VkRect2D scissor = { {0, 0}, {swapchain.width, swapchain.height} };
+		VkRect2D scissor = { { 0, 0 }, { swapchain.width, swapchain.height } };
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
@@ -301,15 +411,30 @@ void renderApp() {
 		VkRenderPassBeginInfo beginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 		beginInfo.renderPass = renderPass;
 		beginInfo.framebuffer = framebuffers[imageIndex];
-		beginInfo.renderArea = { {0, 0}, {swapchain.width, swapchain.height} };
+		beginInfo.renderArea = { { 0, 0 }, { swapchain.width, swapchain.height } };
 		beginInfo.clearValueCount = 1;
 		beginInfo.pClearValues = &clearValue;
 		vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline);
 
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipelineLayout, 0, 1, &uniformDescriptorSets[frameIndex], 0, 0);
+
+		UniformBufferObject ubo = { camera.pos, rotationMatrix, glm::ivec2(window_width, window_height), firstFrame };
+		 
+		void* mapped;
+		VK(vkMapMemory(context->device, uniformBuffers[frameIndex].memory, 0, sizeof(ubo), 0, &mapped));
+		memcpy(mapped, &ubo, sizeof(ubo));
+		VK(vkUnmapMemory(context->device, uniformBuffers[frameIndex].memory));
+
+		VK(vkMapMemory(context->device, listBuffers[frameIndex].memory, 0, VK_WHOLE_SIZE, 0, &mapped));
+		memcpy(mapped, triangles.data(), sizeof(Triangle) * triangles.size());
+		VK(vkUnmapMemory(context->device, listBuffers[frameIndex].memory));
+
 		VkDeviceSize offset = 0;
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, &offset);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipelineLayout, 0, 1, &uniformDescriptorSets[frameIndex], 0, 0);
 
 		vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
@@ -350,9 +475,14 @@ void renderApp() {
 void shutdownApp(SDL_Window* window) {
 	VKA(vkDeviceWaitIdle(context->device));
 
+	VK(vkDestroyDescriptorPool(context->device, uniformDescriptorPool, 0));
+	VK(vkDestroyDescriptorSetLayout(context->device, descriptorSetLayout, 0));
+
 	destroyBuffer(context, &vertexBuffer);
 
 	for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		destroyBuffer(context, &uniformBuffers[i]);
+		destroyBuffer(context, &listBuffers[i]);
 		VK(vkDestroyFence(context->device, fences[i], 0));
 		VK(vkDestroySemaphore(context->device, acquireSemaphores[i], 0));
 		VK(vkDestroySemaphore(context->device, releaseSemaphores[i], 0));
@@ -375,20 +505,19 @@ void shutdownApp(SDL_Window* window) {
 }
 
 int main() {
+	camera.pos = glm::vec3(0.0f, 0.0f, 2.0f);
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 		LOG_ERROR("Error initializing SDL: ", SDL_GetError());
 		return 1;
 	}
 
-	int window_width = 1280;
-	int window_height = 720;
 	SDL_Window* window = SDL_CreateWindow(
 		"Vulkan Real-Time Ray Tracer", 
 		SDL_WINDOWPOS_CENTERED, 
 		SDL_WINDOWPOS_CENTERED, 
 		window_width, 
 		window_height, 
-		SDL_WINDOW_VULKAN
+		SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
 	);
 	if (!window) {
 		LOG_ERROR("Error creating SDL window: ", SDL_GetError());
@@ -398,21 +527,11 @@ int main() {
 	initApp(window);
 
 	while (handleMessage(window, window_width, window_height)) {
-		vertexData[2] = camera.pos.x;
-		vertexData[3] = camera.pos.y;
-		vertexData[4] = camera.pos.z;
-		vertexData[7] = camera.pos.x;
-		vertexData[8] = camera.pos.y;
-		vertexData[9] = camera.pos.z;
-		vertexData[12] = camera.pos.x;
-		vertexData[13] = camera.pos.y;
-		vertexData[14] = camera.pos.z;
-		vertexData[17] = camera.pos.x;
-		vertexData[18] = camera.pos.y;
-		vertexData[19] = camera.pos.z;
-		vertexData[22] = camera.pos.x;
-		vertexData[23] = camera.pos.y;
-		vertexData[24] = camera.pos.z;
+		currentFrame = (float)(SDL_GetTicks()) / 1000.0f;
+		firstFrame += currentFrame;
+
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 		renderApp();
 	}
 

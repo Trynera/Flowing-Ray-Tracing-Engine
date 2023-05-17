@@ -14,37 +14,37 @@
 
 #define ARRAY_COUNT(array) (sizeof(array) / sizeof((array)[0]))
 
-typedef struct VulkanQueue {
+struct VulkanQueue {
 	VkQueue queue;
 	uint32_t familyIndex;
-} VulkanQueue;
+};
 
-typedef struct VulkanSwapchain {
+struct VulkanSwapchain {
 	VkSwapchainKHR swapchain;
 	uint32_t width;
 	uint32_t height;
 	VkFormat format;
 	std::vector<VkImage> images;
 	std::vector<VkImageView> imageViews;
-} VulkanSwapchain;
+};
 
-typedef struct VulkanPipeline {
+struct VulkanPipeline {
 	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
-} VulkanPipeline;
+};
 
-typedef struct VulkanContext {
+struct VulkanContext {
 	VkInstance instance;
 	VkPhysicalDevice physicalDevice;
 	VkPhysicalDeviceProperties physicalDeviceProperties;
 	VkDevice device;
 	VulkanQueue graphicsQueue;
-} VulkanContext;
+};
 
-typedef struct VulkanBuffer {
+struct VulkanBuffer {
 	VkBuffer buffer;
 	VkDeviceMemory memory;
-} VulkanBuffer;
+};
 
 // Init Vulkan (and all the other stuff too like the Swapchain)
 VulkanContext* initVulkan(
@@ -67,7 +67,10 @@ VulkanPipeline createPipeline(
 	uint32_t height,
 	VkVertexInputAttributeDescription* attributes,
 	uint32_t numAttributes,
-	VkVertexInputBindingDescription* binding
+	VkVertexInputBindingDescription* binding,
+	uint32_t numSetLayouts,
+	VkDescriptorSetLayout* setLayouts,
+	VkPushConstantRange* pushConstant
 );
 void createBuffer(
 	VulkanContext* context,
