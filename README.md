@@ -9,11 +9,14 @@ and am also looking into implementing stuff like:
 - [x] BVH
 - [x] Direct Illumination
 - [x] Indirect Illumination
-- [x] Mesh Importing
-- [x] Mesh creation after importing Triangle
+- [x] Mesh Importing (not pushed yet)
+- [x] Mesh creation after importing Triangle  (not pushed yet)
 - [ ] Texture support
 
 and more!
+
+### Ideas for Optimization:
+- I could try using the Rasterizer Hardware in the GPU to know which Triangles can be hit the first time the Rays are shot. That way you don't need to check every Triangle but only the ones that are actually visible
 
 If you want to compile it for yourself, make sure the VulkanSDK from LunarG is installed and do as follows:
 
