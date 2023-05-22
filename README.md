@@ -5,6 +5,7 @@ This is just a Path Tracer I have created for fun. I also want to look into ease
 and am also looking into implementing stuff like:
 
 - [ ] ReSTIR
+- [ ] Denoiser (A-SVGF)
 - [ ] HDR Support
 - [x] BVH
 - [x] Direct Illumination
