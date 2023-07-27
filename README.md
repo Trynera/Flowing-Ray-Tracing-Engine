@@ -4,10 +4,11 @@ A Ray Tracing Engine that doesn't require RT Hardware, written in Vulkan (cuz wh
 This is just a Path Tracer I have created for fun. I also want to look into ease of use, when using this once I'm finished
 and am also looking into implementing stuff like:
 
-- [ ] ReSTIR
+- [ ] ReSTIR GI
 - [ ] Denoiser (A-SVGF)
 - [ ] HDR Support
-- [x] BVH
+- [ ] BVH (In Progress)
+- [x] AABB (Axis-Aligned Bounding Box)
 - [x] Direct Illumination
 - [x] Indirect Illumination
 - [x] Mesh Importing (not pushed yet)
@@ -18,6 +19,7 @@ and more!
 
 ### Ideas for Optimization:
 - I could try using the Rasterizer Hardware in the GPU to know which Triangles can be hit the first time the Rays are shot. That way you don't need to check every Triangle but only the ones that are actually visible
+Problems with that: I don't know how that could be implemented
 
 If you want to compile it for yourself, make sure the VulkanSDK from LunarG is installed and do as follows:
 
@@ -51,7 +53,7 @@ Then use make to compile it:
 make
 ```
 
-I have 12 Threads on my Processor, so I will use -j12 to speed it up:
+I have 12 Threads on my Processor, so I will use -j12 to use 12 threads:
 ```
 make -j12
 ```
