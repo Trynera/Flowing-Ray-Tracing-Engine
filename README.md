@@ -1,4 +1,4 @@
-# FREE (Flowing Rendering EnginE)
+# FREE (Flowing Rendering Engine)
 A Ray Tracing Engine that doesn't require RT Hardware, written in Vulkan (cuz why not).
 
 This is just a Path Tracer I have created for fun. I also want to look into ease of use, when using this once I'm finished
