@@ -1,5 +1,7 @@
 # FREE (Flowing Rendering Engine)
 A Ray Tracing Engine that doesn't require RT Hardware, written in Vulkan (cuz why not).
+It's deprecated for now as I'm going to work on 2.0 which will be a rework of this,
+since I took alot of the code from a tutorial for Vulkan which probably was a terrible decision!
 
 This is just a Path Tracer I have created for fun. I also want to look into ease of use, when using this once I'm finished
 and am also looking into implementing stuff like:
@@ -7,7 +9,7 @@ and am also looking into implementing stuff like:
 - [ ] ReSTIR GI
 - [ ] Denoiser (A-SVGF)
 - [ ] HDR Support
-- [ ] BVH (In Progress)
+- [ ] BVH
 - [x] AABB (Axis-Aligned Bounding Box)
 - [x] Direct Illumination
 - [x] Indirect Illumination
