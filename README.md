@@ -1,3 +1,7 @@
+# This project is deprecated for now, if you're that interessted, look for help or wait
+
+
+
 # FREE (Flowing Rendering Engine)
 A Ray Tracing Engine that doesn't require RT Hardware, written in Vulkan (cuz why not).
 
