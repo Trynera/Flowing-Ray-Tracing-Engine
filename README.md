@@ -1,4 +1,4 @@
-# This project is deprecated for now, if you're that interessted, look for help or wait
+# This project is deprecated for now, if you're that interessted, seek therapy honestly lmfao
 
 
 
