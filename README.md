@@ -22,4 +22,4 @@ and more!
 
 ### Ideas for Optimization:
 - I could try using the Rasterizer Hardware in the GPU to know which Triangles can be hit the first time the Rays are shot. That way you don't need to check every Triangle but only the ones that are actually visible
-Problems with that: I don't know how that could be implemented
+Problems with that: I don't know how that could be implemented and don't see much of a benefit for doing it
