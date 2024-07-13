@@ -1,8 +1,9 @@
 # FREe (**F**lowing **R**ay Tracing **E**ngin**e**)
-A Ray Tracer written with C++ and OpenGL
+A Ray Tracer written with C++ and Vulkan
 
-This is something I am writting for fun! I want to eventually use this to make games
-or potentially even modify other games to use it instead?
+This is something I am writting for fun! I want to eventually use this to make games.
+
+I'm currently prototyping with OpenGL and got following features working:
 
 - [x] Global Illumnination
 - [x] Ray-Triangle intersection
