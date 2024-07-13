@@ -12,6 +12,6 @@ I'm currently prototyping with OpenGL and plan to get following features working
 - [ ] Texture support
 - [ ] HDR support
 - [x] ~Ray-AABB intersection (Ray-Box intersection)~
-- [x] ~implement SAH BVH (and look into speeding up construction)~
+- [x] ~implement SAH BVH~ (and look into speeding up construction)
 - [ ] implement ReSTIR (and look into implementing Area ReSTIR)
 - [ ] implement a Denoiser (A-SVGF)
