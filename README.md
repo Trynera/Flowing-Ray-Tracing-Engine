@@ -1,4 +1,4 @@
-# Free (Flowing Ray Tracing Engine)
+# FREe (**F**lowing **R**ay Tracing **E**ngin**e**)
 A Ray Tracer written with C++ and OpenGL
 
 This is something I am writting for fun! I want to eventually use this to make games
