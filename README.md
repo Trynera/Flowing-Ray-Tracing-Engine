@@ -11,6 +11,6 @@ or potentially even modify other games to use it instead?
 - [ ] Texture support
 - [ ] HDR support
 - [x] Ray-AABB intersection (Ray-Box intersection)
-- [ ] implement SAH BVH (and look into speeding up construction)
+- [x] implement SAH BVH (and look into speeding up construction)
 - [ ] implement ReSTIR (and look into implementing Area ReSTIR)
 - [ ] implement a Denoiser (A-SVGF)
